@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.sound.min.js"></script>
+    <meta charset="utf-8" />
+    <style type="text/css">
+html, body {
+  margin: 0;
+  padding: 0;
+}
+canvas {
+  display: block;
+}
+    </style>
+  </head>
+  <body>
+    <button id="clear">Clear</button>
+    <script>
+let points = [], w = 600, h = 500
+
+function setup() { createCanvas(w, h) }
+
+function f(points, x)
+{  
+  return points.map(
+    i => points.
+      filter(j => i != j).
+      map(j => (x - j.x) / (i.x - j.x)).
+      reduce((a, b) => a * b, 1)  * i.y
+  ).reduce((a, b) => a + b, 0)
+}
+
+function touchStarted() {
+  if (mouseButton == LEFT)
+  {
+    if (mouseX < 0 || mouseX > w || mouseY < 0 || mouseY > h)
+      return
+      
+    points.push({ x: mouseX, y: mouseY })
+    points.sort((a, b) => a.x == b.x ? a.y - b.y : a.x - b.x)
+  }
+  else if (mouseButton == RIGHT) 
+    points = []
+}
+
+function draw()
+{
+  background(255)
+  stroke(0, 0, 255)
+  fill(0, 0, 255)
+  
+  for (let i = 0; i < points.length; i++)
+    circle(points[i].x, points[i].y, 2)
+  
+  if (points.length < 2)
+    return
+  
+  stroke(255, 0, 0)
+   noFill()
+  beginShape()
+  
+  for (let i = 0; i < points.length; i += 3)
+  {
+    let chunk = points.slice(i, i + 4)
+    let min = Math.min(...chunk.map(p => p.x))
+    let max = Math.max(...chunk.map(p => p.x))
+  
+    for (let x = min; x <= max; x += 0.1)
+      vertex(x, f(chunk, x))
+  }
+  
+  endShape()
+}
+
+document.getElementById('clear').addEventListener('click', () => points = [])
+    </script>
+  </body>
+</html>
