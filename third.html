@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.sound.min.js"></script>
+    <meta charset="utf-8" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      
+      canvas, input {
+        display: block;
+        margin: 14px auto;
+        border: 1px solid red;
+      }
+    </style>
+  </head>
+  <body>    
+    <script>
+      let r, of, x, y, i;
+
+      function init(v) {
+        noLoop()
+        background(255)
+        fill(255, 0, 0)
+        stroke(255, 0, 0)
+        circle(300, 300, 2)
+        stroke(0, 0, 255)
+        
+        x = of = r = v
+        y = i = 0
+        
+        loop()
+      }
+
+      function setup() {
+        createCanvas(600, 600)
+        
+        let rSlider = createSlider(5, 250, 100)
+        rSlider.changed(() => init(rSlider.value()))
+        init(100)
+      }
+      
+      function put(x, y) {
+        point(300 + x, 300 + y)
+        point(300 + x, 300 - y)
+        point(300 - x, 300 + y)
+        point(300 - x, 300 - y)
+        point(300 + y, 300 + x)
+        point(300 + y, 300 - x)
+        point(300 - y, 300 + x)
+        point(300 - y, 300 - x)
+      }
+
+      function draw() {
+        if (i < Math.floor(Math.sin(Math.PI / 4) * r)) {          
+          if (of < 0) {
+            of += 2 * y + 1
+            put(x, ++y)
+          } else {
+            of += 2 * (y - x + 1)
+            put(--x, ++y)
+          }
+
+          i++
+        } else noLoop()
+      }
+    </script>
+  </body>
+</html>
