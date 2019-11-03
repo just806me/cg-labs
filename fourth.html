@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/addons/p5.dom.min.js"></script>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      canvas {
+        display: block;
+        position: absolute;
+        z-index: -1;
+      }
+
+      input {
+        margin: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let radius = 0, angle = 0, size = 150, dRadius, target, newTarget, move
+
+      function setup() {
+        createCanvas(windowWidth, windowHeight).mouseOver(() => move = true).mouseOut(() => move = false)
+        createInput(size, 'number').changed((e) => size = parseInt(e.target.value))
+        target = createVector(width / 2, height / 2)
+        fill(0)
+        frameRate(144)
+        cursor('cur.png')
+      }
+
+      function draw() {
+        if (mouseIsPressed && move) {
+          newTarget = createVector(mouseX, mouseY)
+        }
+
+        if (newTarget) {
+          const diff = p5.Vector.sub(newTarget, target)
+
+          if (diff.mag() < 5) {
+            newTarget = null
+          } else {
+            diff.setMag(5)
+            target.add(diff)
+          }
+        }
+
+        if (radius >= size * 0.6) {
+          dRadius = -2 * size / 150
+        } else if (radius <= 0) {
+          dRadius = 2 * size / 150
+        }
+
+        if (angle >= 360) {
+          angle -= 360
+        }
+
+        background(255, 255, 0)
+
+        push()
+        translate(target.x, target.y)
+        rotate(angle += 0.05)
+        rect(-size / 2, -size / 2, size, size, max(radius += dRadius, 0))
+        pop()
+
+        text(frameRate() + ' fps', 5, 40)
+        text(new Date(), 5, 55)
+      }
+    </script>
+  </body>
+</html>
