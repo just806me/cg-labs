@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.1/addons/p5.sound.min.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="user-scalable=no" />
+    <style type="text/css">
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden
+      }
+
+      p,
+      canvas {
+        display: block;
+        margin: 1rem;
+      }
+
+      p:last-child {
+        text-decoration: line-through;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      const cellSize = 50, cellCount = 10, minWordLen = 3, correct = [], found = [],
+        letters = new Array(cellCount * cellCount).fill('-');
+      let startPos = null, correctP, foundP;
+
+      async function setup() {
+        const words = await fetch('https://raw.githubusercontent.com/dariusk/corpora/master/data/words/common.json')
+          .then(r => r.json())
+          .then(d => d['commonWords'].filter(w => w.length < cellCount && w.length >= minWordLen).map(w => w.toUpperCase()));
+
+        for (let i = words.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+
+          [words[i], words[j]] = [words[j], words[i]];
+        }
+
+        for (let i = 0; i < cellCount; i++) {
+          const offset = Math.floor(Math.random() * (cellCount - words[i].length + 1));
+
+          for (let j = 0; j < words[i].length; j++)
+            letters[i * cellCount + j + offset] = words[i][j];
+
+          correct.push({
+            word: words[i],
+            fromPos: createVector(i, offset),
+            toPos: createVector(i, offset + words[i].length - 1)
+          });
+        }
+
+        for (let j = 0; j < cellCount; j++) {
+          let cLen = 0, cStart = 0, mLen = 0, mStart = 0;
+
+          for (let i = 0; i < cellCount; i++) {
+            if (letters[i * cellCount + j] === '-')
+              cLen++;
+            else {
+              if (cLen > mLen) {
+                mLen = cLen;
+                mStart = cStart;
+              }
+              cLen = 0;
+              cStart = i + 1;
+            }
+          }
+
+          if (cLen > mLen) {
+            mLen = cLen;
+            mStart = cStart;
+          }
+
+          if (mLen >= minWordLen) {
+            let wI;
+
+            do { wI = Math.floor(Math.random() * (words.length - cellCount)); } while (words[wI].length > mLen);
+
+            const offset = Math.floor(Math.random() * (mLen - words[wI].length + 1));
+
+            for (let i = 0; i < words[wI].length; i++)
+              letters[(i + mStart + offset) * 10 + j] = words[wI][i];
+
+            correct.push({
+              word: words[wI],
+              fromPos: createVector(mStart + offset, j),
+              toPos: createVector(mStart + offset + words[wI].length - 1, j)
+            });
+          }
+        }
+
+        for (let i = 0; i < cellCount * cellCount; i++)
+          if (letters[i] === '-')
+            letters[i] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+
+        createCanvas(cellCount * cellSize + 3, cellCount * cellSize + 3);
+        correctP = createP();
+        foundP = createP();
+
+        updateP();
+      }
+
+      function updateP() {
+        correctP.html(correct.map(c => c.word).join(', '));
+        foundP.html(found.map(c => c.word).join(', '));
+      }
+
+      function getMouseIJ() {
+        return createVector(Math.floor((mouseY - 4) / cellSize), Math.floor((mouseX - 4) / cellSize));
+      }
+
+      function touchStarted() {
+        if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height)
+          return;
+
+        startPos = getMouseIJ();
+      }
+
+      function touchEnded() {
+        if (startPos === null)
+          return;
+
+        if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) {
+          startPos = null;
+          return;
+        }
+
+        let currPos = getMouseIJ();
+        const dI = Math.abs(startPos.x - currPos.x), dJ = Math.abs(startPos.y - currPos.y);
+        currPos = dI > dJ ? createVector(currPos.x, startPos.y) : createVector(startPos.x, currPos.y);
+
+        for (let i = 0; i < correct.length; i++)
+          if (correct[i].fromPos.equals(startPos) && correct[i].toPos.equals(currPos)) {
+            found.push(correct[i]);
+            correct.splice(i, 1);
+            break;
+          }
+
+        startPos = null;
+        updateP();
+      }
+
+      function drawLine(fromPos, toPos, fillColor, strokeColor) {
+        let startI = Math.min(fromPos.x, toPos.x), endI = Math.max(fromPos.x, toPos.x),
+          startJ = Math.min(fromPos.y, toPos.y), endJ = Math.max(fromPos.y, toPos.y),
+          dI = endI - startI, dJ = endJ - startJ;
+
+        if (dI > dJ) {
+          dJ = 0;
+          startJ = endJ = fromPos.y;
+        } else {
+          dI = 0;
+          startI = endI = fromPos.x;
+        }
+
+        noFill();
+        noStroke();
+        for (let i = startI; i <= endI; i++)
+          for (let j = startJ; j <= endJ; j++)
+            rect(1 + j * cellSize, 1 + i * cellSize, cellSize, cellSize);
+
+        fill(fillColor);
+        stroke(strokeColor);
+        rect(1 + startJ * cellSize, 1 + startI * cellSize, (dJ + 1) * cellSize, (dI + 1) * cellSize);
+      }
+
+      function draw() {
+        background(255);
+
+        textSize(24);
+        textAlign(CENTER, CENTER);
+        noStroke();
+        fill(0);
+        for (let i = 0; i < cellCount; i++)
+          for (let j = 0; j < cellCount; j++)
+            text(letters[i * cellCount + j], 5 + j * cellSize, 2 + i * cellSize, cellSize, cellSize);
+
+        strokeWeight(2);
+        if (startPos && !(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height))
+          drawLine(startPos, getMouseIJ(), 'rgba(255, 204, 0, 0.25)', 'rgb(255, 204, 0)');
+
+        for (v of found)
+          drawLine(v.fromPos, v.toPos, 'rgba(66, 245, 179, 0.25)', 'rgb(66, 245, 179)');
+      }
+    </script>
+  </body>
+</html>
